@@ -1,0 +1,108 @@
+from picamera2 import Picamera2, Preview
+from libcamera import controls
+import numpy as np
+import socket
+import time
+import cv2
+import sys
+import os
+import csv
+
+
+def detect_backside(threshold=0.5):
+      # Initialize the USB camera
+    cap = cv2.VideoCapture(0)
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+    #time.sleep(2)  # Warm-up time for the camera
+
+    # card_image = cv2.imread('src_imgs\\frame_2023-12-19_10-13-47.png')
+    # Capture a single frame
+    ret, frame = cap.read()
+    cap.release()  # Release the VideoCapture object
+    #cap.stop()
+
+    if not ret:
+        print("Failed to capture image")
+        return
+    return_frontside = "t1"
+    return return_frontside
+
+def picamera_initilize():
+    picam2 = Picamera2()
+    #picam2.start_preview(Preview.QTGL)
+
+    # Create a preview configuration with a specific size
+    preview_config = picam2.create_preview_configuration(main={"size": (590, 864)})
+    picam2.configure(preview_config)
+
+    # Set autofocus mode to manual and lens position to 0.0
+    picam2.set_controls({"AfMode": controls.AfModeEnum.Continuous, "LensPosition": 14})
+
+    # Start the camera
+    picam2.start()
+
+    # Wait for a specified duration (in seconds)
+    time.sleep(1)  # Adjust the sleep duration according to your needs
+
+
+    # Capture a still image if needed
+    #picam2.capture_file("output_image.jpg")
+    timestamp = time.strftime("%Y%m%d%H%M%S")
+    image_filename = f"image_{timestamp}.jpg"
+    picam2.capture_file(image_filename)
+
+    picam2.stop()
+    picam2.stop_preview()
+    return image_filename
+
+
+def detect_frontside():
+
+    picam2 = Picamera2()
+    #picam2.start_preview(Preview.QTGL)
+
+    # Create a preview configuration with a specific size
+    preview_config = picam2.create_preview_configuration(main={"size": (590, 864)})
+    picam2.configure(preview_config)
+
+    # Set autofocus mode to manual and lens position to 0.0
+    picam2.set_controls({"AfMode": controls.AfModeEnum.Continuous, "LensPosition": 14})
+
+    # Start the camera
+    picam2.start()
+
+    # Wait for a specified duration (in seconds)
+    time.sleep(1)  # Adjust the sleep duration according to your needs
+
+
+    # Capture a still image if needed
+    #picam2.capture_file("output_image.jpg")
+    timestamp = time.strftime("%Y%m%d%H%M%S")
+    image_filename = f"image_{timestamp}.jpg"
+    picam2.capture_file(image_filename)
+
+    picam2.stop()
+    picam2.stop_preview()
+    image = cv2.imread(image_filename)
+    print(image_filename)
+    frontside_result  = "23"
+    return frontside_result
+    
+def comm(result_back):
+    frontside_result = detect_frontside()
+    return result_back + "" + frontside_result
+
+
+def send_message_to_esp32(client_socket, message):
+    client_socket.sendall(message.encode())
+
+if __name__ == "__main__":
+        while True:
+                result_back = detect_backside()
+                print("result back is ", result_back)
+                #result_back = "t1")
+                time.sleep(5)
+                result = comm(result_back)
+
+print("Connection closed.")
