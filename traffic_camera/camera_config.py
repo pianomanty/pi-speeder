@@ -87,14 +87,15 @@ def capture_num_frames(send_queue, e1, receive_queue):
                 
                 counter += 1
                 time.sleep(0.03)  # ~30 FPS
-
                 # Convert YUV → grayscale for scoring, processing
                 gray = frame#[:, :, 0]  # Y plane
                 score = frame_sharpness(gray)
+                print(f'Captured image {counter}, Score: {score}')
                 frame_candidates.append((score, gray))
 
 
             #keep the N sharpest frames
+            print(f'Length frame candidates: {len(frame_candidates)}')
             frame_candidates.sort(reverse=True, key=lambda x: x[0])
             if N > len(frame_candidates):
                 best_frames = frame_candidates
