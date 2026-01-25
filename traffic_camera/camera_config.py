@@ -30,12 +30,12 @@ def capture_num_frames(send_queue, e1, receive_queue):
 
     # Manual exposure settings
     camera.set_controls({
-        "AeEnable": False,
-        "ExposureTime": 1000,  # 1 ms to freeze motion
-        "AnalogueGain": 6.0,
-        "Contrast": 1.4,
-        "Sharpness": 1.5,
-        "ScalerCrop": (1200, 800, 2000, 1200)  # adjust if out of bounds
+        "AeEnable": True,
+        # "ExposureTime": 1000,  # 1 ms to freeze motion
+        # "AnalogueGain": 6.0,
+        # "Contrast": 1.4,
+        # "Sharpness": 1.5,
+        "ScalerCrop": (0, 0, 1280, 720)  # full frame
     })
 
     # Queue for async scoring
