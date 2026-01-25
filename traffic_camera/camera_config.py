@@ -63,13 +63,16 @@ def capture_num_frames(send_queue, e1, receive_queue):
     
     # Runs background process
     try:
+        
         while True:
             # Block efficiently until capture is requested
             if not e1.wait(timeout=0.1):
                 continue
+            else:
+                print('Attempting to capture pictures')
 
             pic_array = []
-            frame_candidates = []
+            # frame_candidates = []
             max_speed = receive_queue.get()
 
             counter = 0
@@ -104,5 +107,7 @@ def capture_num_frames(send_queue, e1, receive_queue):
             #     print(f"{filename} saved")
 
             send_queue.put(pic_array)
+    except Exception as e:
+        print(f'Error: {e}')
     finally:
         camera.stop()
