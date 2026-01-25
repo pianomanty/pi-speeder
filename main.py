@@ -80,6 +80,9 @@ sw = 0
 if __name__ == "__main__":
     # Main program to run the traffic speed camera.
     
+    # force multithreading to do spawn instead of fork
+    mp.set_start_method("spawn", force=True)
+
     while True:
         # Main loop for program.
         try:   
@@ -115,7 +118,6 @@ if __name__ == "__main__":
                                                  event_LPR_to_file_org
                                                  ),
                                          name = "LPR")
-                LPR_process.daemon = True
                 LPR_process.start()
                 print("LPR Process started")
                 
@@ -126,7 +128,6 @@ if __name__ == "__main__":
                                                     queue_captured_speed
                                                     )
                                             )
-                camera_process.daemon = True
                 camera_process.start()
                 print("Camera Process started")
                 sw = 1
@@ -155,18 +156,33 @@ if __name__ == "__main__":
                                        event_LPR_to_file_org)
                     
         except KeyboardInterrupt:
-            # Kill all daemon processes.
-            system("sudo pkill python")
-            warnings.warn("Killed all processes.")
+            print("\nShutting down from keyboard interrupt cleanly...")
+
+            if camera_process.is_alive():
+                camera_process.terminate()
+                camera_process.join()
+
+            if LPR_process.is_alive():
+                LPR_process.terminate()
+                LPR_process.join()
+
+            print("Shutdown complete.")
             
-        except:
-            #warnings.warn("Keyboard interrupt was detected. Ending program now.")
-            warnings.warn("Ending program now.")
-            
-            camera_process.join(1.0)
-            LPR_process.join(3.0)
-            warnings.warn("Terminated camera_process and LPR Process")
-            sw = 0
+        except Exception as e:
+            print(f"Debug: Caught exception: {e}")
+            # optionally terminate processes
+            if 'camera_process' in locals() and camera_process.is_alive():
+                camera_process.terminate()
+                camera_process.join(timeout=3.0)
+            if 'LPR_process' in locals() and LPR_process.is_alive():
+                LPR_process.terminate()
+                LPR_process.join(timeout=3.0)
+            raise  # re-raise to see full traceback
+        finally:
+            camera_process.terminate()
+            LPR_process.terminate()
+            camera_process.join()
+            LPR_process.join()
 
         
 
