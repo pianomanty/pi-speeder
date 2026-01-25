@@ -18,8 +18,8 @@ def capture_num_frames(send_queue, e1, receive_queue):
 
     camera_config = camera.create_video_configuration(
         main={
-            "size": (1920, 1080),
-            "format": "YUV420"
+            "size": (1280, 720),
+            "format": "RGB888"
         }
     )
 
@@ -29,8 +29,8 @@ def capture_num_frames(send_queue, e1, receive_queue):
 
     camera.set_controls({
         "AeEnable": False,
-        "ExposureTime": 3000,
-        "AnalogueGain": 6.0,
+        "ExposureTime": 1000,
+        "AnalogueGain": 6.0, #may need to increase
         "Contrast": 1.4,
         "Sharpness": 1.5,
         "ScalerCrop": (1200, 800, 2000, 1200)
@@ -58,7 +58,7 @@ def capture_num_frames(send_queue, e1, receive_queue):
             # ---- SCORING PHASE ----
             scored_frames = []
             for frame in frames:
-                gray = frame[:, :, 0] if frame.ndim == 3 else frame
+                gray = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
                 score = frame_sharpness(gray)
                 scored_frames.append((score, frame))
 
@@ -73,10 +73,7 @@ def capture_num_frames(send_queue, e1, receive_queue):
                     im_save_dir /
                     f"image{i:02d}_max_speed{max_speed:02d}.jpg"
                 )
-
-                bgr = cv2.cvtColor(frame, cv2.COLOR_YUV2BGR_I420)
-                cv2.imwrite(str(filename), bgr)
-
+                cv2.imwrite(str(filename), cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
                 saved_files.append(filename)
                 print(f"Saved {filename}")
 
