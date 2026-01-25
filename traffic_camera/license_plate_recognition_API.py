@@ -12,9 +12,6 @@ import time
 
 from pprint import pprint
 
-from .led_dot_matrix import display_text, flash_text, led
-
-
 def LPR_to_file(queue, token, e):
     """ Reads data from queue, sends request to LPR, and writes to text file.
 
@@ -94,7 +91,6 @@ def LPR_to_file(queue, token, e):
                         last_time = time.monotonic()
                         count += 1
                         
-            led.hide() # turn off LED
             pprint(carList)
             
             

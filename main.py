@@ -25,8 +25,6 @@ from traffic_camera.file_org import create_daily_folder, move_files_to_path
 
 from traffic_camera.camera_config import capture_num_frames
 
-# from traffic_camera.led_dot_matrix import display_text, flash_text, led
-
 import traffic_camera.license_plate_recognition_API as LPR
 
 ############################ Global Variables ################################
@@ -57,9 +55,6 @@ connect_USB()
 curr_directory = create_main_folder(main_folder, parent_directory)
 daily_folder_path = ''
 folder_path = ''
-
-# # Empty display of LED Matrix.
-# led.clear()
 
 # Initialization of variables shared amongst processes.
 speed_list = mp.Array('d', range(DATA_BUFFER))
@@ -141,20 +136,11 @@ if __name__ == "__main__":
                 print(speed_list, max_speed)
                 
                 # And if the reported max speed is less than the speed limit...
-                if max_speed <= speed_limit:
-                    
-                    # # The LED Dot Matrix will flash several times.
-                    # flash_text(str(round(max_speed)), FLASH_TIME,
-                    #                                            NUM_FLASH_LONG)
+                if max_speed <= speed_limit:                    
                     print("The captured speed %d mph was below speed limit."
                           % max_speed)
                     
-                else:
-                    
-                    # # The LED will flash and persist.
-                    # flash_text(str(round(max_speed)), FLASH_TIME, NUM_FLASH)
-                    # display_text(str(round(max_speed)), FLASH_PERSIST)
-                    
+                else:                    
                     # A timestamp is created for this camera capture.
                     folder_path = create_timestamp_folder(daily_folder_path)
                     print("Exceeded the {} mph speed limit at {} mph!" \
@@ -176,7 +162,6 @@ if __name__ == "__main__":
         except:
             #warnings.warn("Keyboard interrupt was detected. Ending program now.")
             warnings.warn("Ending program now.")
-            # display_text(ERROR_STR) #LED display
             
             camera_process.join(1.0)
             LPR_process.join(3.0)
