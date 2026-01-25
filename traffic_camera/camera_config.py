@@ -90,7 +90,7 @@ def capture_num_frames(send_queue, e1, receive_queue, testing_mode=True):
                     score_queue.put_nowait((frame, max_speed))
                 except queue.Full:
                     pass  # drop frames if queue is full
-                time.sleep(0.01)  # small sleep to reduce CPU spike
+                # time.sleep(0.01)  # small sleep to reduce CPU spike
 
             # Sort top frames by sharpness
             sorted_frames = sorted(best_frames, key=lambda x: x[0], reverse=True)
