@@ -9,9 +9,6 @@ import queue
 TODO: consider trying out true video
 """
 
-im_save_dir = Path("~/Pictures").expanduser()
-im_save_dir.mkdir(parents=True, exist_ok=True)
-
 N = 10  # Number of sharpest frames to keep
 
 # Sharpness scoring function
@@ -104,7 +101,7 @@ def capture_num_frames(send_queue, e1, receive_queue, testing_mode=True):
             # Save results
             saved_files = []
             for i, (_, frame) in enumerate(sorted_frames):
-                filename = im_save_dir / f"image{i:02d}_max_speed{max_speed:.1f}.jpg"
+                filename = f"image{i:02d}_max_speed{max_speed:.1f}.jpg"
                 cv2.imwrite(str(filename), cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
                 saved_files.append(filename)
                 print(f"Saved {filename}")
