@@ -39,16 +39,19 @@ def create_daily_folder(current_date, sub_directory):
         return (full_path, date)
 
 
-main_folder = "speed_photos_test"  # Name of your main directory
-parent_directory = '/home/mediaunion/Pictures/'  # Location of your main directory
-curr_directory = os.path.join(parent_directory,main_folder)
-current_date = datetime.now()
+
 
 def main():
+    #Create a daily folder in the test directory
+    main_folder = "speed_photos_test"  # Name of your main directory
+    parent_directory = '/home/mediaunion/Pictures/'  # Location of your main directory
+    curr_directory = os.path.join(parent_directory,main_folder)
+    current_date = datetime.now()
     (daily_folder_path, current_date) = create_daily_folder(
                                                     current_date,
                                                     curr_directory
                                                     )    # Multiprocessing primitives
+    #Initiate multithreading queues
     send_queue = mp.Queue()
     receive_queue = mp.Queue()
     capture_event = mp.Event()
