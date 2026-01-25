@@ -44,44 +44,46 @@ NUM_FLASH = 2
 NUM_FLASH_LONG = 11
 FLASH_PERSIST = 0
 ERROR_STR = "ER"
-############################## Initializations ###############################
 
-# Clear all processes
-
-# Establish serial interface with OPS243.
-connect_USB() 
-
-# Creation/Initialization of directories of traffic photos.
-curr_directory = create_main_folder(main_folder, parent_directory)
-daily_folder_path = ''
-folder_path = ''
-
-# Initialization of variables shared amongst processes.
-speed_list = mp.Array('d', range(DATA_BUFFER))
-max_speed_shared = mp.Value('d', 0.0)
-max_speed = max_speed_shared.value
-
-# Creation of multiprocessing queues.
-queue_captured_pics = mp.JoinableQueue()
-queue_pic_filenames = mp.JoinableQueue()
-queue_captured_speed = mp.JoinableQueue()
-
-# Creation/Initialization of muliprocessing events
-event_radar_to_camera = mp.Event()
-event_LPR_to_file_org = mp.Event()
-event_radar_to_camera.clear()
-event_LPR_to_file_org.set()
-
-# Switch to run code snippet once.
-sw = 0
-################################# Main Program ###############################
 
 
 if __name__ == "__main__":
     # Main program to run the traffic speed camera.
-    
+    ############################## Initializations ###############################
     # force multithreading to do spawn instead of fork
     mp.set_start_method("spawn", force=True)
+
+    # Clear all processes
+    # Establish serial interface with OPS243.
+    connect_USB() 
+
+    # Creation/Initialization of directories of traffic photos.
+    curr_directory = create_main_folder(main_folder, parent_directory)
+    daily_folder_path = ''
+    folder_path = ''
+
+    # Initialization of variables shared amongst processes.
+    speed_list = mp.Array('d', range(DATA_BUFFER))
+    max_speed_shared = mp.Value('d', 0.0)
+    max_speed = max_speed_shared.value
+
+    # Creation of multiprocessing queues.
+    queue_captured_pics = mp.JoinableQueue()
+    queue_pic_filenames = mp.JoinableQueue()
+    queue_captured_speed = mp.JoinableQueue()
+
+    # Creation/Initialization of muliprocessing events
+    event_radar_to_camera = mp.Event()
+    event_LPR_to_file_org = mp.Event()
+    event_radar_to_camera.clear()
+    event_LPR_to_file_org.set()
+
+    # Switch to run code snippet once.
+    sw = 0
+    
+
+    ################################# Main Program ###############################
+
 
     while True:
         # Main loop for program.
