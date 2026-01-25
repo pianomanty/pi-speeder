@@ -13,11 +13,14 @@ the top 3 sharpest images of each car, out of the 30fps capture
 from picamera2 import Picamera2, Preview
 import time
 import cv2
-# def frame_sharpness(gray):
-#     """Return a focus metric based on Laplacian variance"""
-#     return cv2.Laplacian(gray, cv2.CV_64F).var()
+from pathlib import Path
+im_save_dir = Path('~/Pictures').expanduser()
+im_save_dir.mkdir(parents=True, exist_ok=True)
 
 
+def frame_sharpness(gray):
+    """Return a focus metric based on Laplacian variance"""
+    return cv2.Laplacian(gray, cv2.CV_64F).var()
 
 def capture_num_frames(send_queue, e1, receive_queue):
     """ Create camera object and start background process for camera capture
@@ -33,12 +36,15 @@ def capture_num_frames(send_queue, e1, receive_queue):
 
     # Camera Initializations
     camera = Picamera2()
+    # We'll keep the sharpest N frames per captures, tune as needed
+    N = 30
 
     # 13Jan neuCode to start acquire
     # camera_config = camera.create_preview_configuration()
     camera_config = camera.create_video_configuration(
         main={
-            "size": (1920, 1080), "format": "RGB888",
+            "size": (1920, 1080), 
+            # "format": "RGB888",
             "format": "YUV420"  # Faster + OCR-friendly
             }
 
@@ -72,39 +78,37 @@ def capture_num_frames(send_queue, e1, receive_queue):
                 print('Attempting to capture pictures')
 
             pic_array = []
-            # frame_candidates = []
+            frame_candidates = []
             max_speed = receive_queue.get()
 
             counter = 0
             while e1.is_set():
-                filename = (
-                    f"image{counter:02d}_max_speed{max_speed:02d}.mph.jpg"
-                )
                 frame = camera.capture_array()
-                # camera.capture_file(filename) #decoupling taking and saving picture is better
-
-                pic_array.append(filename)
-
-                print(f"{filename} created!")
+                
                 counter += 1
                 time.sleep(0.03)  # ~30 FPS
 
-                # # Convert YUV → grayscale for scoring
-                # gray = cv2.cvtColor(frame, cv2.COLOR_YUV2GRAY_I420)
-                # score = frame_sharpness(gray)
-                # frame_candidates.append((score, gray))
+                # Convert YUV → grayscale for scoring, processing
+                gray = frame[:, :, 0]  # Y plane
+                score = frame_sharpness(gray)
+                frame_candidates.append((score, gray))
 
 
-            # #keep the N sharpest frames
-            # frame_candidates.sort(reverse=True, key=lambda x: x[0])
-            # best_frames = frame_candidates[:5]  # tune as needed
-            # for i, (_, gray) in enumerate(best_frames):
-            #     filename = (
-            #         f"image{i:02d}_max_speed{max_speed:02d}.mph.jpg"
-            #     )
-            #     cv2.imwrite(filename, gray)
-            #     pic_array.append(filename)
-            #     print(f"{filename} saved")
+            #keep the N sharpest frames
+            frame_candidates.sort(reverse=True, key=lambda x: x[0])
+            if N > len(frame_candidates):
+                best_frames = frame_candidates
+            else:
+                best_frames = frame_candidates[:N]
+            for i, (_, gray) in enumerate(best_frames):
+                filename = (
+                    im_save_dir /
+                    f"image{i:02d}_max_speed{max_speed:02d}.mph.jpg"
+                )
+                print(f"{filename} created!")
+                cv2.imwrite(filename, gray)
+                pic_array.append(filename)
+                print(f"{filename} saved")
 
             send_queue.put(pic_array)
     except Exception as e:
