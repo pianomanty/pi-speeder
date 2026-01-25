@@ -13,14 +13,14 @@ N = 10  # Number of sharpest frames to keep
 
 # Sharpness scoring function
 def frame_sharpness(gray):
-    # Optionally resize for faster scoring
+    # Resize to speed up scoring
     small = cv2.resize(gray, (320, 180))
     return cv2.Laplacian(small, cv2.CV_64F).var()
 
-def capture_num_frames(send_queue, e1, receive_queue):
+def capture_num_frames(send_queue, e1, receive_queue, testing_mode=True):
     camera = Picamera2()
-    
-    # Use smaller resolution for faster capture on Pi3
+
+    # Resolution for Pi 3
     camera_config = camera.create_video_configuration(
         main={"size": (1280, 720), "format": "RGB888"}
     )
@@ -28,21 +28,29 @@ def capture_num_frames(send_queue, e1, receive_queue):
     camera.start()
     time.sleep(1)
 
-    # Manual exposure settings
-    camera.set_controls({
-        "AeEnable": True,
-        # "ExposureTime": 1000,  # 1 ms to freeze motion
-        # "AnalogueGain": 6.0,
-        # "Contrast": 1.4,
-        # "Sharpness": 1.5,
-        "ScalerCrop": (0, 0, 1280, 720)  # full frame
-    })
+    # Camera controls
+    if testing_mode:
+        # Indoor testing mode: auto-exposure
+        camera.set_controls({
+            "AeEnable": True,
+            "ScalerCrop": (0, 0, 1280, 720)
+        })
+    else:
+        # Fast motion outdoors
+        camera.set_controls({
+            "AeEnable": False,
+            "ExposureTime": 1000,  # 1 ms to freeze motion
+            "AnalogueGain": 6.0,
+            "Contrast": 1.4,
+            "Sharpness": 1.5,
+            "ScalerCrop": (0, 0, 1280, 720)
+        })
 
     # Queue for async scoring
     score_queue = queue.Queue(maxsize=50)
     best_frames = deque(maxlen=N)
 
-    # Scoring thread
+    # Async scoring worker
     def scoring_worker():
         while True:
             try:
@@ -53,11 +61,14 @@ def capture_num_frames(send_queue, e1, receive_queue):
             gray = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
             score = frame_sharpness(gray)
 
-            # Insert into top-N list
+            # Insert into top-N list safely
             if len(best_frames) < N:
                 best_frames.append((score, frame))
             else:
-                min_idx, min_score = min(enumerate(best_frames), key=lambda x: x[1][0])
+                # Properly unpack the tuple
+                min_idx, (min_score, _) = min(
+                    enumerate(best_frames), key=lambda x: x[1][0]
+                )
                 if score > min_score:
                     best_frames[min_idx] = (score, frame)
 
@@ -81,7 +92,7 @@ def capture_num_frames(send_queue, e1, receive_queue):
                     pass  # drop frames if queue is full
                 time.sleep(0.01)  # small sleep to reduce CPU spike
 
-            # After capture, sort top frames
+            # Sort top frames by sharpness
             sorted_frames = sorted(best_frames, key=lambda x: x[0], reverse=True)
 
             # Save results
