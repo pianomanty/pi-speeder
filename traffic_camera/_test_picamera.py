@@ -41,7 +41,7 @@ def main():
 
     # Wait for results from camera process
     try:
-        images = send_queue.get(timeout=5)
+        images = send_queue.get(timeout=15)
         print("\nCaptured images:")
         for img in images:
             print(" ", img)

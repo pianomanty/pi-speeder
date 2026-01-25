@@ -14,7 +14,7 @@ def frame_sharpness(gray):
 def capture_num_frames(send_queue, e1, receive_queue):
 
     camera = Picamera2()
-    N = 30
+    N = 10
 
     camera_config = camera.create_video_configuration(
         main={
