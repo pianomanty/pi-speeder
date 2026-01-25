@@ -1,116 +1,86 @@
-"""
-File name: camera_config.py
-Author: Christian Pedrigal (pedrigalchristian@gmail.com)
-Date created: 10/25/2021
-Date last modified: 10/25/2021
-Python Version: 1.1
-
-TODO:
-- Look into using openCV (cv2) to score the sharpness of images, only keep
-the top 3 sharpest images of each car, out of the 30fps capture
-- Dial in sensor crop (ie zoom)
-"""
-from picamera2 import Picamera2, Preview
+from picamera2 import Picamera2
 import time
 import cv2
 from pathlib import Path
-im_save_dir = Path('~/Pictures').expanduser()
+
+im_save_dir = Path("~/Pictures").expanduser()
 im_save_dir.mkdir(parents=True, exist_ok=True)
 
 
 def frame_sharpness(gray):
-    """Return a focus metric based on Laplacian variance"""
     return cv2.Laplacian(gray, cv2.CV_64F).var()
 
+
 def capture_num_frames(send_queue, e1, receive_queue):
-    """ Create camera object and start background process for camera capture
 
-    Parameters:
-    - send_queue: puts pictures into queue for future access with Queue.get()
-    - e1: an event that triggers the continuous camera capture, which runs
-          indefinitely until e1 is cleared using the Event.clear()
-          in data_array_any_amount() function.
-    - receive_queue: receives max_speed data and parses value
-                     into picture filename
-    """
-
-    # Camera Initializations
     camera = Picamera2()
-    # We'll keep the sharpest N frames per captures, tune as needed
     N = 30
 
-    # 13Jan neuCode to start acquire
-    # camera_config = camera.create_preview_configuration()
     camera_config = camera.create_video_configuration(
         main={
-            "size": (1920, 1080), 
-            # "format": "RGB888",
-            "format": "YUV420"  # Faster + OCR-friendly
-            }
-
+            "size": (1920, 1080),
+            "format": "YUV420"
+        }
     )
 
     camera.configure(camera_config)
-    camera.start()    
-
-    # Let auto-exposure settle
+    camera.start()
     time.sleep(1)
-   
-    # Camera controls (best-effort equivalents)
+
     camera.set_controls({
         "AeEnable": False,
-        "ExposureTime": 3000,   # µs
+        "ExposureTime": 3000,
         "AnalogueGain": 6.0,
         "Contrast": 1.4,
         "Sharpness": 1.5,
-        "FrameRate": 30.0,
-        "ScalerCrop": (1200, 800, 2000, 1200) #TODO: dial this crop (zoom) in for a real scene
+        "ScalerCrop": (1200, 800, 2000, 1200)
     })
-    
-    # Runs background process
+
     try:
         while True:
-            # Block efficiently until capture is requested
+            # Wait for capture signal
             if not e1.wait(timeout=0.1):
                 continue
-            else:
-                print('Attempting to capture pictures')
 
-            pic_array = []
-            frame_candidates = []
+            print("Capturing frames...")
+
+            frames = []
             max_speed = receive_queue.get()
 
-            counter = 0
+            # ---- CAPTURE ONLY ----
             while e1.is_set():
                 frame = camera.capture_array()
-                
-                counter += 1
+                frames.append(frame)
                 time.sleep(0.03)  # ~30 FPS
-                # Convert YUV → grayscale for scoring, processing
-                gray = frame#[:, :, 0]  # Y plane
-                score = frame_sharpness(gray)
-                print(f'Captured image {counter}, Score: {score}')
-                frame_candidates.append((score, gray))
 
-            #keep the N sharpest frames
-            print(f'Length frame candidates: {len(frame_candidates)}')
-            frame_candidates.sort(reverse=True, key=lambda x: x[0])
-            if N > len(frame_candidates):
-                best_frames = frame_candidates
-            else:
-                best_frames = frame_candidates[:N]
-            for i, (_, gray) in enumerate(best_frames):
+            print(f"Captured {len(frames)} frames")
+
+            # ---- SCORING PHASE ----
+            scored_frames = []
+            for frame in frames:
+                gray = frame[:, :, 0] if frame.ndim == 3 else frame
+                score = frame_sharpness(gray)
+                scored_frames.append((score, frame))
+
+            scored_frames.sort(reverse=True, key=lambda x: x[0])
+            best_frames = scored_frames[:N]
+
+            # ---- SAVE RESULTS ----
+            saved_files = []
+
+            for i, (_, frame) in enumerate(best_frames):
                 filename = (
                     im_save_dir /
-                    f"image{i:02d}_max_speed{max_speed:02d}.mph.jpg"
+                    f"image{i:02d}_max_speed{max_speed:02d}.jpg"
                 )
-                cv2.imwrite(str(filename), gray)
-                print(f"{filename} created!")
-                pic_array.append(filename)
-                print(f"{filename} saved")
 
-            send_queue.put(pic_array)
-    # except Exception as e:
-    #     print(f'Error: {e}')
+                bgr = cv2.cvtColor(frame, cv2.COLOR_YUV2BGR_I420)
+                cv2.imwrite(str(filename), bgr)
+
+                saved_files.append(filename)
+                print(f"Saved {filename}")
+
+            send_queue.put(saved_files)
+
     finally:
         camera.stop()
