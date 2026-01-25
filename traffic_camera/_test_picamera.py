@@ -8,7 +8,7 @@ Triggers a capture cycle and prints returned filenames.
 import time
 import multiprocessing as mp
 from camera_config import capture_num_frames
-import datetime
+from datetime import datetime
 from pathlib import Path
 import os
 
