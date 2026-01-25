@@ -83,9 +83,8 @@ if __name__ == "__main__":
     
 
     ################################# Main Program ###############################
-
-
-    while True:
+    execute_main_loop = True
+    while execute_main_loop:
         # Main loop for program.
         try:   
             
@@ -158,30 +157,29 @@ if __name__ == "__main__":
                                        event_LPR_to_file_org)
                     
         except KeyboardInterrupt:
-            print("\nShutting down from keyboard interrupt cleanly...")
-
-            if camera_process.is_alive():
-                camera_process.terminate()
-                camera_process.join()
-
-            if LPR_process.is_alive():
-                LPR_process.terminate()
-                LPR_process.join()
-            
-            print("Shutdown complete.")
-            break
-            
+            print("\nShutting down (keyboard interrupt)...")
+            #exit main loop
+            execute_main_loop = False
         except Exception as e:
             print(f"Debug: Caught exception: {e}")
-            # optionally terminate processes
-            if 'camera_process' in locals() and camera_process.is_alive():
-                camera_process.terminate()
-                camera_process.join(timeout=3.0)
-            if 'LPR_process' in locals() and LPR_process.is_alive():
-                LPR_process.terminate()
-                LPR_process.join(timeout=3.0)
             raise  # re-raise to see full traceback
+        finally:
+            # terminate child processes safely
+            for p_name in ['camera_process', 'LPR_process']:
+                if p_name in locals():
+                    p = locals()[p_name]
+                    if p.is_alive():
+                        p.terminate()
+                        p.join(timeout=3.0)
 
+            # close and join queues
+            for q in ['queue_captured_pics', 'queue_pic_filenames', 'queue_captured_speed']:
+                if q in locals():
+                    q_obj = locals()[q]
+                    q_obj.close()
+                    q_obj.join_thread()
+            #Exit main loop
+            execute_main_loop = False
         
 
 
