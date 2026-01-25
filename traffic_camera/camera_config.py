@@ -89,7 +89,7 @@ def capture_num_frames(send_queue, e1, receive_queue):
                 time.sleep(0.03)  # ~30 FPS
 
                 # Convert YUV → grayscale for scoring, processing
-                gray = frame[:, :, 0]  # Y plane
+                gray = frame#[:, :, 0]  # Y plane
                 score = frame_sharpness(gray)
                 frame_candidates.append((score, gray))
 
