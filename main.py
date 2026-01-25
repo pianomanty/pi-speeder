@@ -32,7 +32,7 @@ import traffic_camera.license_plate_recognition_API as LPR
 # User Arguments
 # Please modify these arguments to your Traffic Speed Camera application.
 # The `token` variable is from user account from: https://platerecognizer.com/
-speed_limit = 10  # in mph
+speed_limit = 3  # in mph
 main_folder = "speed_photos"  # Name of your main directory
 parent_directory = '/home/mediaunion/Desktop/'  # Location of your main directory
 token = '7c6a169aeaaeadd767c642ac0a9ea65b1231e5b0'
