@@ -165,8 +165,9 @@ if __name__ == "__main__":
             if LPR_process.is_alive():
                 LPR_process.terminate()
                 LPR_process.join()
-
+            
             print("Shutdown complete.")
+            break
             
         except Exception as e:
             print(f"Debug: Caught exception: {e}")
@@ -178,11 +179,6 @@ if __name__ == "__main__":
                 LPR_process.terminate()
                 LPR_process.join(timeout=3.0)
             raise  # re-raise to see full traceback
-        finally:
-            camera_process.terminate()
-            LPR_process.terminate()
-            camera_process.join()
-            LPR_process.join()
 
         
 

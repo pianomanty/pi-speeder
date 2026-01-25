@@ -21,7 +21,7 @@ def connect_USB():
     via serial interface."""
 
     portList = [str(onePort) for onePort in ports]
-    print(portList)
+    # print(portList)
     
     portVar = portList[0][0:12]
     print("Connected to USB Port: " + portVar + "!")
