@@ -8,9 +8,25 @@ Triggers a capture cycle and prints returned filenames.
 import time
 import multiprocessing as mp
 from camera_config import capture_num_frames
+import datetime
+from pathlib import Path
+import os
+
+def create_daily_folder(base_dir:Path):
+    today = datetime.now().strftime("%Y%m%d")
+    path = base_dir / today
+    path.mkdir(parents=True, exist_ok=True)
+
+    os.chdir(path)
+    return path
+
+
+main_folder = "speed_photos_test"  # Name of your main directory
+parent_directory = '/home/mediaunion/Pictures/'  # Location of your main directory
 
 
 def main():
+    create_daily_folder(Path(parent_directory)/main_folder)
     # Multiprocessing primitives
     send_queue = mp.Queue()
     receive_queue = mp.Queue()
