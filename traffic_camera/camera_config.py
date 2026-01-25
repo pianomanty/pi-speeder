@@ -111,7 +111,7 @@ def capture_num_frames(send_queue, e1, receive_queue):
                 print(f"{filename} saved")
 
             send_queue.put(pic_array)
-    except Exception as e:
-        print(f'Error: {e}')
+    # except Exception as e:
+    #     print(f'Error: {e}')
     finally:
         camera.stop()
