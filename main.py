@@ -84,10 +84,9 @@ if __name__ == "__main__":
 
     ################################# Main Program ###############################
     execute_main_loop = True
-    while execute_main_loop:
-        # Main loop for program.
-        try:   
-            
+    try:
+        while execute_main_loop:
+            # Main loop for program.            
             # If this is the first time the program is being run for the day,
             # a new folder based on the current date will be created.
             (daily_folder_path, current_date) = create_daily_folder(
@@ -101,7 +100,7 @@ if __name__ == "__main__":
                                         )
             remove_process.start()
             remove_process.join()
- 
+
             # This will return data only if data is received.
             # Otherwise, a a tuple of (None, None) is returned.
             (speed_list, max_speed) = data_array_any_amount(speed_limit,
@@ -114,11 +113,11 @@ if __name__ == "__main__":
                 
                 # Create daemon process for LPR Recognition.
                 LPR_process = mp.Process(target = LPR.LPR_to_file,
-                                         args = (queue_pic_filenames,
-                                                 token,
-                                                 event_LPR_to_file_org
-                                                 ),
-                                         name = "LPR")
+                                        args = (queue_pic_filenames,
+                                                token,
+                                                event_LPR_to_file_org
+                                                ),
+                                        name = "LPR")
                 LPR_process.start()
                 print("LPR Process started")
                 
@@ -140,7 +139,7 @@ if __name__ == "__main__":
                 # And if the reported max speed is less than the speed limit...
                 if max_speed <= speed_limit:                    
                     print("The captured speed %d mph was below speed limit."
-                          % max_speed)
+                        % max_speed)
                     
                 else:                    
                     # A timestamp is created for this camera capture.
@@ -151,36 +150,31 @@ if __name__ == "__main__":
                     # Transfer files from the daily folder  
                     # to the time stamp folder.  
                     move_files_to_path(queue_captured_pics,
-                                       daily_folder_path,
-                                       folder_path,
-                                       queue_pic_filenames,
-                                       event_LPR_to_file_org)
-                    
-        except KeyboardInterrupt:
-            print("\nShutting down (keyboard interrupt)...")
-            #exit main loop
-            execute_main_loop = False
-        except Exception as e:
-            print(f"Debug: Caught exception: {e}")
-            raise  # re-raise to see full traceback
-        finally:
-            # terminate child processes safely
-            for p_name in ['camera_process', 'LPR_process']:
-                if p_name in locals():
-                    p = locals()[p_name]
-                    if p.is_alive():
-                        p.terminate()
-                        p.join(timeout=3.0)
+                                    daily_folder_path,
+                                    folder_path,
+                                    queue_pic_filenames,
+                                    event_LPR_to_file_org)
+                        
+    except KeyboardInterrupt:
+        print("\nShutting down (keyboard interrupt)...")
+    except Exception as e:
+        print(f"Debug: Caught exception: {e}")
+        raise  # re-raise to see full traceback
+    finally:
+        # terminate child processes safely
+        for p_name in ['camera_process', 'LPR_process']:
+            if p_name in locals():
+                p = locals()[p_name]
+                if p.is_alive():
+                    p.terminate()
+                    p.join(timeout=3.0)
 
-            # close and join queues
-            for q in ['queue_captured_pics', 'queue_pic_filenames', 'queue_captured_speed']:
-                if q in locals():
-                    q_obj = locals()[q]
-                    q_obj.close()
-                    q_obj.join_thread()
-            #Exit main loop
-            execute_main_loop = False
-        
+        # close and join queues
+        for q in ['queue_captured_pics', 'queue_pic_filenames', 'queue_captured_speed']:
+            if q in locals():
+                q_obj = locals()[q]
+                q_obj.close()
+                q_obj.join_thread()        
 
 
     
