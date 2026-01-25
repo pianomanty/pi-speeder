@@ -104,8 +104,8 @@ def capture_num_frames(send_queue, e1, receive_queue):
                     im_save_dir /
                     f"image{i:02d}_max_speed{max_speed:02d}.mph.jpg"
                 )
+                cv2.imwrite(str(filename), gray)
                 print(f"{filename} created!")
-                cv2.imwrite(filename, gray)
                 pic_array.append(filename)
                 print(f"{filename} saved")
 
