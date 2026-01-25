@@ -1,58 +1,59 @@
-""" Test LPR API with static images taken from picamera."""
+"""
+_test_picamera.py
 
+Test harness for camera_config.py using Picamera2.
+Triggers a capture cycle and prints returned filenames.
+"""
 
 import time
-import os
-import requests
-from pprint import pprint
-from datetime import datetime
+import multiprocessing as mp
 
-from picamera2 import Picamera2, Preview
-
-from file_org import create_daily_folder
-
-# Token from LPR
-TOKEN = 'b0d681034ef2a4b8d3db7e0813e440f4780e1519'
-
-# Create testing folder
-current_date = datetime.now()
-sub_directory = create_daily_folder(current_date, os.getcwd())
-
-# Create camera object
-camera = Picamera2()
-
-    camera_config = camera.create_preview_configuration()
-    camera.configure(camera_config)
-    camera.start_preview(Preview.DRM)
-    camera.start()
-    time.sleep(2)
-    camera.capture_file("Bubba1.jpg")
-
-name = input('Create a name for the picture: ') + '.jpeg'
+from camera_config import capture_num_frames
 
 
+def main():
+    # Queues and event
+    send_queue = mp.Queue()
+    receive_queue = mp.Queue()
+    capture_event = mp.Event()
 
-# Camera Configurations
-camera.zoom = (0.35, 0.35, 0.30, 0.30)
-camera.color_effects = (128,128) # black and white
-camera.contrast = 13
-#camera.shutter_speed = 8000
-camera.exposure_mode = 'sports'
-# camera.iso = 400
+    # Start camera process
+    cam_process = mp.Process(
+        target=capture_num_frames,
+        args=(send_queue, capture_event, receive_queue),
+        daemon=True
+    )
+    cam_process.start()
 
-time.sleep(2)
-camera.capture_file(name)
-print("%s snapped!" % name)
+    print("Camera process started.")
+    time.sleep(2)  # give camera time to initialize
+
+    # Simulate speed input (used in filename)
+    test_speed = 42
+    receive_queue.put(test_speed)
+
+    print("Triggering capture...")
+    capture_event.set()
+
+    # Let it capture for a moment
+    time.sleep(1.5)
+
+    # Stop capture
+    capture_event.clear()
+
+    # Retrieve results
+    if not send_queue.empty():
+        images = send_queue.get()
+        print("\nCaptured images:")
+        for img in images:
+            print("  ", img)
+    else:
+        print("No images returned.")
+
+    # Cleanup
+    cam_process.terminate()
+    cam_process.join()
 
 
-with open(name, 'rb') as fp:
-    print("Sending to LPR...")
-    response = requests.post(
-        'https://api.platerecognizer.com/v1/plate-reader/',
-        files=dict(upload=fp),
-        headers={'Authorization': f'Token {TOKEN}'})
-pprint(response.json())
-
-
-
-
+if __name__ == "__main__":
+    main()
