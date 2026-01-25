@@ -2,77 +2,92 @@ from picamera2 import Picamera2
 import time
 import cv2
 from pathlib import Path
+from threading import Thread
+from collections import deque
+import queue
 
 im_save_dir = Path("~/Pictures").expanduser()
 im_save_dir.mkdir(parents=True, exist_ok=True)
 
+N = 10  # Number of sharpest frames to keep
 
+# Sharpness scoring function
 def frame_sharpness(gray):
-    return cv2.Laplacian(gray, cv2.CV_64F).var()
-
+    # Optionally resize for faster scoring
+    small = cv2.resize(gray, (320, 180))
+    return cv2.Laplacian(small, cv2.CV_64F).var()
 
 def capture_num_frames(send_queue, e1, receive_queue):
-
     camera = Picamera2()
-    N = 10
-
+    
+    # Use smaller resolution for faster capture on Pi3
     camera_config = camera.create_video_configuration(
-        main={
-            "size": (1280, 720),
-            "format": "RGB888"
-        }
+        main={"size": (1280, 720), "format": "RGB888"}
     )
-
     camera.configure(camera_config)
     camera.start()
     time.sleep(1)
 
+    # Manual exposure settings
     camera.set_controls({
         "AeEnable": False,
-        "ExposureTime": 1000,
-        "AnalogueGain": 6.0, #may need to increase
+        "ExposureTime": 1000,  # 1 ms to freeze motion
+        "AnalogueGain": 6.0,
         "Contrast": 1.4,
         "Sharpness": 1.5,
-        "ScalerCrop": (1200, 800, 2000, 1200)
+        "ScalerCrop": (1200, 800, 2000, 1200)  # adjust if out of bounds
     })
+
+    # Queue for async scoring
+    score_queue = queue.Queue(maxsize=50)
+    best_frames = deque(maxlen=N)
+
+    # Scoring thread
+    def scoring_worker():
+        while True:
+            try:
+                frame, max_speed = score_queue.get(timeout=1)
+            except queue.Empty:
+                continue
+
+            gray = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
+            score = frame_sharpness(gray)
+
+            # Insert into top-N list
+            if len(best_frames) < N:
+                best_frames.append((score, frame))
+            else:
+                min_idx, min_score = min(enumerate(best_frames), key=lambda x: x[1][0])
+                if score > min_score:
+                    best_frames[min_idx] = (score, frame)
+
+    Thread(target=scoring_worker, daemon=True).start()
 
     try:
         while True:
-            # Wait for capture signal
             if not e1.wait(timeout=0.1):
                 continue
 
             print("Capturing frames...")
-
-            frames = []
+            best_frames.clear()
             max_speed = receive_queue.get()
 
-            # ---- CAPTURE ONLY ----
+            # Capture loop
             while e1.is_set():
                 frame = camera.capture_array()
-                frames.append(frame)
-                time.sleep(0.03)  # ~30 FPS
+                try:
+                    score_queue.put_nowait((frame, max_speed))
+                except queue.Full:
+                    pass  # drop frames if queue is full
+                time.sleep(0.01)  # small sleep to reduce CPU spike
 
-            print(f"Captured {len(frames)} frames")
+            # After capture, sort top frames
+            sorted_frames = sorted(best_frames, key=lambda x: x[0], reverse=True)
 
-            # ---- SCORING PHASE ----
-            scored_frames = []
-            for frame in frames:
-                gray = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
-                score = frame_sharpness(gray)
-                scored_frames.append((score, frame))
-
-            scored_frames.sort(reverse=True, key=lambda x: x[0])
-            best_frames = scored_frames[:N]
-
-            # ---- SAVE RESULTS ----
+            # Save results
             saved_files = []
-
-            for i, (_, frame) in enumerate(best_frames):
-                filename = (
-                    im_save_dir /
-                    f"image{i:02d}_max_speed{max_speed:02d}.jpg"
-                )
+            for i, (_, frame) in enumerate(sorted_frames):
+                filename = im_save_dir / f"image{i:02d}_max_speed{max_speed:.1f}.jpg"
                 cv2.imwrite(str(filename), cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
                 saved_files.append(filename)
                 print(f"Saved {filename}")
