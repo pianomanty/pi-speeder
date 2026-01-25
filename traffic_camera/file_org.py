@@ -33,7 +33,7 @@ def create_daily_folder(current_date, sub_directory):
     date = datetime.now()
     
     if current_date == date:
-        return curent_date
+        return current_date
     else:
         
         # Creation of daily folder filename.
