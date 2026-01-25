@@ -7,52 +7,54 @@ Triggers a capture cycle and prints returned filenames.
 
 import time
 import multiprocessing as mp
-
 from camera_config import capture_num_frames
 
 
 def main():
-    # Queues and event
+    # Multiprocessing primitives
     send_queue = mp.Queue()
     receive_queue = mp.Queue()
     capture_event = mp.Event()
 
-    # Start camera process
+    # Start camera worker
     cam_process = mp.Process(
         target=capture_num_frames,
-        args=(send_queue, capture_event, receive_queue),
-        daemon=True
+        args=(send_queue, capture_event, receive_queue)
     )
     cam_process.start()
 
     print("Camera process started.")
-    time.sleep(2)  # give camera time to initialize
+    time.sleep(2)  # Allow camera to initialize
 
-    # Simulate speed input (used in filename)
+    # Send test metadata
     test_speed = 42
     receive_queue.put(test_speed)
 
     print("Triggering capture...")
     capture_event.set()
 
-    # Let it capture for a moment
+    # Allow frames to accumulate
     time.sleep(1.5)
 
     # Stop capture
     capture_event.clear()
 
-    # Retrieve results
-    if not send_queue.empty():
-        images = send_queue.get()
+    # Wait for results from camera process
+    try:
+        images = send_queue.get(timeout=5)
         print("\nCaptured images:")
         for img in images:
-            print("  ", img)
-    else:
-        print("No images returned.")
+            print(" ", img)
+    except Exception:
+        print("Timed out waiting for camera results.")
 
-    # Cleanup
-    cam_process.terminate()
-    cam_process.join()
+    # Clean shutdown
+    cam_process.join(timeout=2)
+    if cam_process.is_alive():
+        cam_process.terminate()
+        cam_process.join()
+
+    print("Test complete.")
 
 
 if __name__ == "__main__":

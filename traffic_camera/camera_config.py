@@ -69,7 +69,6 @@ def capture_num_frames(send_queue, e1, receive_queue):
     
     # Runs background process
     try:
-        
         while True:
             # Block efficiently until capture is requested
             if not e1.wait(timeout=0.1):
@@ -92,7 +91,6 @@ def capture_num_frames(send_queue, e1, receive_queue):
                 score = frame_sharpness(gray)
                 print(f'Captured image {counter}, Score: {score}')
                 frame_candidates.append((score, gray))
-
 
             #keep the N sharpest frames
             print(f'Length frame candidates: {len(frame_candidates)}')
