@@ -5,6 +5,9 @@ from pathlib import Path
 from threading import Thread
 from collections import deque
 import queue
+"""
+TODO: consider trying out true video
+"""
 
 im_save_dir = Path("~/Pictures").expanduser()
 im_save_dir.mkdir(parents=True, exist_ok=True)
@@ -33,7 +36,10 @@ def capture_num_frames(send_queue, e1, receive_queue, testing_mode=True):
         # Indoor testing mode: auto-exposure
         camera.set_controls({
             "AeEnable": True,
-            "ScalerCrop": (0, 0, 1280, 720)
+            "AwbEnable": True,
+            "ScalerCrop": (0, 0, 1280, 720),
+            "Contrast": 1.4,
+            "Sharpness": 1.5
         })
     else:
         # Fast motion outdoors
