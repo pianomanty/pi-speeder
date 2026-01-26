@@ -81,35 +81,39 @@ def data_array_any_amount(speed_limit, queue3, e):
     serialInst.timeout = 0.3
     
     if serialInst.in_waiting:
-        
         print("Data is received!")
         speed_data_list = []
-        
+        maxVal = None
         sw = 0
+
         while sw == 0: # Begin reading from serial interface.
             packet = serialInst.readline()
-            data = packet.decode('utf').rstrip('\r\n')
-            
-            if data != '': # If data is not empty string.
-                
-                data = json.loads(data)
-                data = abs(float(data["speed"])) # Read value of key 'speed'.
-                speed_data_list.append(data) # Append speed to list.
-                
-                maxVal = max(speed_data_list)
-                
-                if maxVal > speed_limit:
-                    e.set() # Set Event object on, triggering camera_capture.
-                    queue3.put(maxVal)
-            else:
-                sw = 1 # End data reading from serial interface.
-                e.clear() # Set Event object off, ending camera_capture.
-                
+            try:
+                #Try getting data
+                decoded_packet = packet.decode('utf').rstrip('\r\n')
+                #Make sure data is valid
+                if not decoded_packet or decoded_packet=='':
+                    sw = 1
+                    e.clear()
+                    continue
+
+                #Load and read data
+                data = json.loads(decoded_packet)
+                if 'speed' in data:
+                    data = abs(float(data["speed"])) # Read value of key 'speed'.
+                    speed_data_list.append(data) # Append speed to list.
+                    maxVal = max(speed_data_list)
+                    
+                    if maxVal > speed_limit:
+                        e.set() # Set Event object on, triggering camera_capture.
+                        queue3.put(maxVal)
+                else:
+                    # Ignore packets without a speed key
+                    continue
+            except (json.JSONDecodeError, ValueError) as ex:
+                # ignore malformed packets
+                print(f"Warning: Skipping malformed packet: {ex}")
+                continue
         return (speed_data_list, maxVal)
     else:
         return (None, None)
-
-
-
-
-    
