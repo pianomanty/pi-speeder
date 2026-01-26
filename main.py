@@ -133,7 +133,7 @@ if __name__ == "__main__":
                 sw = 1
             
             # If there is data that is received...
-            if (speed_list, max_speed) != (None, None):
+            if speed_list is not None and max_speed is not None:
                 print(speed_list, max_speed)
                 
                 # And if the reported max speed is less than the speed limit...
